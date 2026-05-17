@@ -9,38 +9,55 @@ Descrição: Script de verificação de saúde de ambiente Samba 4
 
 import subprocess
 import os
+import time
+import psutil
+from datetime import datetime
 
 def run_command(command):
-    """Executa um comando no terminal e retorna o resultado."""
     try:
         result = subprocess.run(command, shell=True, capture_output=True, text=True)
-        return result.stdout.strip(), result.returncode
-    except Exception as e:
-        return str(e), 1
+        return "OK" if result.returncode == 0 else "FALHA"
+    except:
+        return "ERRO"
 
-def check_infra():
-    print("--- [ Iniciando Monitoramento Samba Enterprise ] ---")
+def check_replication():
+    # Roda o showrepl para verificar a replicacao do domain controller
+    try:
+        result = subprocess.run("sudo samba-tool drs showrepl", shell=True, capture_output=True, text=True)
+        if "failed" in result.stdout.lower() or result.returncode != 0:
+            return "FALHA"
+        return "OK"
+    except:
+        return "ERRO"
 
-    # 1. Verificando o serviço Samba
-    status, code = run_command("systemctl is-active smbd")
-    if status == "active":
-        print("✅ [OK] Serviço SMBD (File Server) está ativo.")
-    else:
-        print(f"❌ [ERRO] Serviço SMBD está {status}!")
+def monitorar():
+    while True:
+        os.system('clear')
+        # Coleta de Hardware
+        cpu = psutil.cpu_percent()
+        ram = psutil.virtual_memory().percent
+        
+        print(f"--- [ Samba Enterprise Monitoring ] --- {datetime.now().strftime('%H:%M:%S')}")
+        print(f"💻 HARDWARE: CPU: {cpu}% | RAM: {ram}%")
+        print("-" * 45)
 
-    # 2. Verificando a conexão com o Domain Controller
-    join_status, join_code = run_command("net ads testjoin")
-    if join_code == 0:
-        print("✅ [OK] Vínculo com o Domain Controller está saudável.")
-    else:
-        print("❌ [ERRO] Falha na confiança com o Domínio AD!")
+        # Verificacoes de Infra
+        status_ad_dc = run_command("systemctl is-active samba-ad-dc")
+        status_join = run_command("net ads testjoin")
+        status_dns  = run_command("host -t SRV _ldap._tcp.isistech.corp")
+        status_drs  = check_replication()
 
-    # 3. Verificando Resolução de DNS (SRV Records do AD)
-    dns_status, dns_code = run_command("host -t SRV _ldap._tcp.isistech.corp")
-    if dns_code == 0:
-        print("✅ [OK] DNS do Active Directory resolvendo corretamente.")
-    else:
-        print("❌ [ERRO] Problema de DNS: Não foi possível localizar o AD.")
+        print(f"✅ [DC]  AD Service:   {status_ad_dc}")
+        print(f"🤝 [AD]  Trust Join:   {status_join}")
+        print(f"🌐 [DNS] SRV Record:   {status_dns}")
+        print(f"🔄 [DRS] Replication:  {status_drs}")
+        
+        print("-" * 45)
+        print("Pressione Ctrl+C para encerrar.")
+        time.sleep(5)
 
 if __name__ == "__main__":
-    check_infra()
+    try:
+        monitorar()
+    except KeyboardInterrupt:
+        print("\nMonitoramento finalizado.")

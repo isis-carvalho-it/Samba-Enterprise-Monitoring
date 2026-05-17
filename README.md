@@ -11,7 +11,8 @@ simulando verificações comuns de infraestrutura em servidores Linux.
 
 - **Domain Controller (DC):** Gerencia autenticação, DNS e objetos do Active Directory
 - **Member Server:** Servidor Linux integrado ao domínio, utilizado como File Server
-- **Script de Monitoramento:** Automação em Python para validação de serviços críticos
+- **Script de Monitoramento:** Automação em Python desenvolvida para monitorar
+o uso de CPU e RAM, além de validar o status de serviços críticos
 
 ## 🛠️ Tecnologias utilizadas
 
@@ -22,12 +23,31 @@ simulando verificações comuns de infraestrutura em servidores Linux.
 
 ## 📊 Funcionalidades do script (`monitor_samba.py`)
 
-- [x] Verificação do status do serviço `smbd`
+- [x] Verificação do status do serviço `samba-ad-dc`
 - [x] Teste de vínculo com o domínio (`net ads testjoin`)
 - [x] Validação de resolução DNS (registros SRV do AD)
-- [ ] Em desenvolvimento: verificação de replicação do diretório (DRS)
+- [x] Verificação de replicação do diretório (DRS)
+- [x] Monitoramento de uso de CPU e memória RAM
+
+---
+
+## 🛠️ Pré-requisitos e Dependências
+
+Antes de executar o script, é necessário instalar a biblioteca `psutil`, responsável pela coleta das métricas de hardware.
+
+```bash
+# Atualize os índices de pacotes do sistema
+sudo apt update
+
+# Instale a biblioteca psutil
+sudo apt install python3-psutil -y
+```
 
 ## 🚀 Execução
 
+Como o script faz checagens de serviços do sistema e lê dados confidenciais do Samba Active Directory,
+ele deve ser executado com privilégios de administrador:
+
 ```bash
-python3 monitor_samba.py
+sudo python3 monitor_samba.py
+```
